@@ -1,1 +1,1 @@
-# vanguard-ticker-price
+# Vanguard Ticker Price
