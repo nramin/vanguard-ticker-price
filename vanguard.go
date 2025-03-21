@@ -18,40 +18,66 @@ func main() {
 	stockTicker := os.Args[1]
 	vanguardTickerPath := fmt.Sprintf("/vmf/api/%s/delayedPrice", stockTicker)
 	url := fmt.Sprintf("https://%s/%s", vanguardUrl, vanguardTickerPath)
+	userAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
 
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println(err)
+	var result Result
+
+	client := &http.Client{
+		Transport: &http.Transport{},
 	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		printError(&result, err.Error())
+		os.Exit(0)
+	}
+
+	req.Header.Set("User-Agent", userAgent)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		printError(&result, err.Error())
+		os.Exit(0)
+	}
+
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		fmt.Println("Could not get stock ticker data.")
+		printError(&result, "Could not read stock ticker data.")
+		os.Exit(0)
 	}
 
 	var apiResponse Response
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		fmt.Println("Can not unmarshal JSON.")
+		printError(&result, "Could not unmarshal stock ticker data JSON.")
+		os.Exit(0)
 	}
 
-	var result Result
-	for _, quote := range apiResponse.Quotes {
-		result.Ticker = stockTicker
-		result.Price = quote.Equity.Pricing.AskPrice
-		result.Status = "200"
+	if len(result.Error) == 0 {
+		for _, quote := range apiResponse.Quotes {
+			result.Status = "200"
+			result.Ticker = stockTicker
+			result.Price = quote.Equity.Pricing.AskPrice
+		}
 	}
 
 	marshaledResult, _ := json.Marshal(result)
 	fmt.Println(string(marshaledResult))
-	//fmt.Printf("Getting price for stock ticker %s.\n", stockTicker)
+	os.Exit(0)
+}
 
+func printError(result *Result, error string) {
+	result.Status = "500"
+	result.Error = error
+	marshaledResult, _ := json.Marshal(result)
+	fmt.Println(string(marshaledResult))
 }
 
 type Result struct {
-	Ticker string `json:"ticker"`
-	Price  string `json:"price"`
-	Status string `json:"status"`
+	Ticker string `json:"ticker,omitempty"`
+	Price  string `json:"price,omitempty"`
+	Status string `json:"status,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 type Response struct {
