@@ -55,7 +55,7 @@ func main() {
 
 	if len(result.Error) == 0 {
 		for _, quote := range apiResponse.Quotes {
-			result.Status = "200"
+			result.Success = true
 			result.Ticker = stockTicker
 			result.Price = quote.Equity.Pricing.AskPrice
 		}
@@ -67,17 +67,17 @@ func main() {
 }
 
 func printError(result *Result, error string) {
-	result.Status = "500"
+	result.Success = false
 	result.Error = error
 	marshaledResult, _ := json.Marshal(result)
 	fmt.Println(string(marshaledResult))
 }
 
 type Result struct {
-	Ticker string `json:"ticker,omitempty"`
-	Price  string `json:"price,omitempty"`
-	Status string `json:"status,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Ticker  string `json:"ticker,omitempty"`
+	Price   string `json:"price,omitempty"`
+	Success bool   `json:"success,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 type Response struct {
