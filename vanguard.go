@@ -54,11 +54,10 @@ func main() {
 	}
 
 	if len(result.Error) == 0 {
-		for _, quote := range apiResponse.Quotes {
-			result.Success = true
-			result.Ticker = stockTicker
-			result.Price = quote.Equity.Pricing.AskPrice
-		}
+		quote := apiResponse.Quotes[0]
+		result.Success = true
+		result.Ticker = stockTicker
+		result.Price = quote.Equity.Pricing.AskPrice
 	}
 
 	marshaledResult, _ := json.Marshal(result)
