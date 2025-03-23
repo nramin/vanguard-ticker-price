@@ -2,25 +2,35 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
+)
+
+var (
+	ticker string
+	qty    float64
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("No stock ticker provided. Exiting program.")
+	flag.StringVar(&ticker, "ticker", "", "stock ticker")
+	flag.Float64Var(&qty, "qty", 1, "stock quantity")
+	flag.Parse()
+
+	var result Result
+
+	if len(ticker) == 0 {
+		printError(&result, "No stock ticker provided. Exiting program.")
 		os.Exit(1)
 	}
 
 	vanguardUrl := "investor.vanguard.com"
-	stockTicker := os.Args[1]
-	vanguardTickerPath := fmt.Sprintf("/vmf/api/%s/delayedPrice", stockTicker)
+	vanguardTickerPath := fmt.Sprintf("/vmf/api/%s/delayedPrice", ticker)
 	url := fmt.Sprintf("https://%s/%s", vanguardUrl, vanguardTickerPath)
 	userAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
-
-	var result Result
 
 	client := &http.Client{
 		Transport: &http.Transport{},
@@ -55,9 +65,13 @@ func main() {
 
 	if len(result.Error) == 0 {
 		quote := apiResponse.Quotes[0]
+		price, _ := strconv.ParseFloat(quote.Equity.Pricing.AskPrice, 64)
+
 		result.Success = true
-		result.Ticker = stockTicker
-		result.Price = quote.Equity.Pricing.AskPrice
+		result.Ticker = ticker
+		result.Price = price
+		result.Quantity = qty
+		result.Balance = qty * price
 	}
 
 	marshaledResult, _ := json.Marshal(result)
@@ -73,10 +87,12 @@ func printError(result *Result, error string) {
 }
 
 type Result struct {
-	Ticker  string `json:"ticker,omitempty"`
-	Price   string `json:"price,omitempty"`
-	Success bool   `json:"success,omitempty"`
-	Error   string `json:"error,omitempty"`
+	Ticker   string  `json:"ticker,omitempty"`
+	Price    float64 `json:"price,omitempty"`
+	Success  bool    `json:"success,omitempty"`
+	Quantity float64 `json:"quantity,omitempty"`
+	Balance  float64 `json:"balance,omitempty"`
+	Error    string  `json:"error,omitempty"`
 }
 
 type Response struct {
