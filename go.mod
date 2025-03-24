@@ -1,4 +1,4 @@
-module vanguard
+module github.com/nramin/vanguard-ticker-price
 
 go 1.23.7
 
